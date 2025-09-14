@@ -18,6 +18,22 @@
 #define DBG(fmt, ...) do {} while(0)
 #endif
 
+static int readmsg(int sfd, char *buf, size_t buflen) {
+    size_t i = 0;
+    char s;
+    ssize_t n;
+    while (i < buflen -1) {
+        n = recv(sfd, &s, 1, 0);
+        if(n > 0 ) {
+            DBG("Data Received: %c", s);
+        }else{
+            DBG("Error occurred while receiving");
+        }
+        buf[i++] =   s;
+    }
+    buf[i] = '\0';
+    return (int)i;
+}
 
 int main(int argc, char *argv[]){
     if(argc != 2) {
@@ -67,4 +83,29 @@ int err = getaddrinfo(Desthost, buf, &hints, &res);
         return 1;
     }
     DBG("Connected to %s:%d", Desthost, port);
+
+    char msg[128];
+    int supported = 0;
+    while (readmsg(sockfd, msg, 128) > 0) {
+        DBG("Server %s", msg);
+        if(strcmp(msg, "TEXT TCP 1.0") == 0)
+            supported = 1;
+        if(msg[0] == '\0')
+            DBG("End of line");
+    }
+
+    if(!supported){
+        printf("ERROR: MISMATCH PROTOCOL\n");
+        close(sockfd);
+        return 1;
+    } else {
+        send(sockfd, "OK\n", 3, 0);
+    }
+
+    if(readmsg(sockfd, msg, 128) <= 0) {
+        printf("ERROR: NO INPUT RECEIVED\n");
+        close(sockfd);
+        return 1;
+    }
+
 }
