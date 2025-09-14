@@ -108,4 +108,13 @@ int err = getaddrinfo(Desthost, buf, &hints, &res);
         return 1;
     }
 
+    char operation[16];
+    char value1[16];
+    char value2[16];
+    if(sscanf(msg,"%s %s %s", operation, value1, value2) != 3) {
+        printf("ERROR: During reading values %s", msg);
+        close(sockfd);
+        return 1;
+    }
+
 }
