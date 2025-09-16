@@ -8,6 +8,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <sys/time.h>
 
 #ifndef DEBUG
 #define DEBUG 0
@@ -49,9 +50,8 @@ int main(int argc, char *argv[]){
     }
 
     int port=atoi(Destport);
-#ifdef DEBUG 
-  printf("Host %s, and port %d.\n",Desthost,port);
-#endif
+    printf("Host %s, and port %d.\n",Desthost,port);
+
 
 struct addrinfo hints;
 struct addrinfo *res;
@@ -83,18 +83,30 @@ int err = getaddrinfo(Desthost, buf, &hints, &res);
     }
     DBG("Connected to %s:%d", Desthost, port);
 
+    struct timeval tv;
+    tv.tv_sec = 5;
+    tv.tv_usec = 0;
+    setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
+
     char msg[128];
     int supported = 0;
     while (readmsg(sockfd, msg, sizeof(msg)) > 0) {
         DBG("Server %s", msg);
-        if(strcmp(msg, "TEXT TCP 1.0") == 0)
+        if(strcmp(msg, "TEXT TCP 1.0") != 0) {
+            printf("ERROR\n");
+            close(sockfd);
+            return 1;
+        } else {
             supported = 1;
-        if(msg[0] == '\0')
+        }         
+        if(msg[0] == '\0'){
             DBG("End of line");
+            break;
+        }
     }
 
     if(!supported){
-        printf("ERROR: MISMATCH PROTOCOL\n");
+        printf("ERROR: MISSMATCH PROTOCOL\n");
         close(sockfd);
         return 1;
     } else {
