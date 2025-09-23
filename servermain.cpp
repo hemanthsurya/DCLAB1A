@@ -4,13 +4,40 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/types.h>
 #include <netdb.h>
+#include <poll.h>
 #include <calcLib.h>
 
 #define DEBUG
 
+static int send(int fd, const char *buf, size_t len) {
+    size_t total = 0;
+    while (total < len) {
+        ssize_t n = send(fd, buf + total, len - total, 0);
+        if (n <= 0) return -1;
+        total += (size_t)n;
+    }
+    return 0;
+}
 
-using namespace std;
+static int receive(int fd, char *out, size_t maxlen) {
+    struct pollfd pfd;
+    pfd.fd = fd;
+    pfd.events = POLLIN;
+    size_t pos = 0;
+    char c;
+    while (pos < maxlen - 1) {
+        int ready = poll(&pfd, 1, 5000);
+        if (ready <= 0) return -1;
+        ssize_t n = recv(fd, &c, 1, 0);
+        if (n <= 0) return -1;
+        if (c == '\n') break;
+        out[pos++] = c;
+    }
+    out[pos] = '\0';
+    return 0;
+}
 
 
 int main(int argc, char *argv[]){
@@ -73,7 +100,7 @@ int main(int argc, char *argv[]){
   printf("Server listening on %s:%d\n", Desthost, port);
 
 #ifdef DEBUG  
-  printf("Host %s, and port %d.\n",Desthost,port);
+  printf("Host %s, and port %d.\n", Desthost, port);
 #endif
 
 
