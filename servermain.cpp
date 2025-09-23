@@ -99,6 +99,20 @@ int main(int argc, char *argv[]){
 
   printf("Server listening on %s:%d\n", Desthost, port);
 
+  struct sockaddr_storage client_addr;
+  socklen_t cli_len = sizeof(client_addr);
+  int connection_fd = accept(listen_fd, (struct sockaddr *)&client_addr, &cli_len);
+  if (connection_fd < 0)
+      printf("Connection fd error");
+
+  if (send(connection_fd, "TEXT TCP 1.0\n\n", 14) < 0)
+      close(connection_fd);
+
+  char clientMsg[256];
+  if (receive(connection_fd, clientMsg, sizeof(clientMsg)) < 0 ||
+      strcmp(clientMsg, "OK") != 0)
+      close(connection_fd);
+
 #ifdef DEBUG  
   printf("Host %s, and port %d.\n", Desthost, port);
 #endif
